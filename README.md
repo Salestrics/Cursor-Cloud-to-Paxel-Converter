@@ -1,6 +1,6 @@
 # Cursor Cloud to Paxel Converter
 
-Unofficial bridge that uploads **Cursor Cloud Agent** sessions to [YC Paxel](https://paxel.ycombinator.com).
+Unofficial bridge that uploads **Cursor Cloud Agent** sessions to [Paxel by YC](https://paxel.ycombinator.com).
 
 Paxel's official `upload.sh` only reads **local** transcripts (Claude `~/.claude`, Codex `~/.codex`, desktop Cursor `workspaceStorage`). Cursor Cloud Agents store sessions remotely. This tool:
 

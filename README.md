@@ -2,18 +2,56 @@
 
 Unofficial bridge that uploads **Cursor Cloud Agent** sessions to [Paxel by YC](https://paxel.ycombinator.com).
 
-Paxel's official `upload.sh` only reads **local** transcripts (Claude `~/.claude`, Codex `~/.codex`, desktop Cursor `workspaceStorage`). Cursor Cloud Agents store sessions remotely. This tool:
+Paxel helps YC founders reflect on how they build by ingesting AI coding session transcripts. Its official `upload.sh` only reads **local** history — Claude (`~/.claude`), Codex (`~/.codex`), and desktop Cursor (`workspaceStorage`). **Cursor Cloud Agents** run in remote pods; their transcripts live in Cursor's cloud, not on your machine.
 
-1. Exports Cloud Agent transcripts (via Cursor MCP or manual export)
-2. Converts them to Paxel's Cursor JSONL format
-3. Patches Paxel's `upload.sh` to import the staging directory
-4. Runs the patched upload from your project
+This tool closes that gap:
+
+1. **Exports** Cloud Agent transcripts (via Cursor MCP or manual export)
+2. **Converts** them to Paxel's Cursor JSONL format
+3. **Patches** Paxel's `upload.sh` to import the staging directory
+4. **Uploads** from your project directory
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Getting started](docs/getting-started.md) | Install, export, and run your first upload |
+| [Exporting transcripts](docs/exporting-transcripts.md) | MCP workflow and manual export |
+| [Architecture](docs/architecture.md) | Pipeline, data flow, and Paxel patches |
+| [Reference](docs/reference.md) | CLI flags, env vars, formats, tool mapping |
+| [Troubleshooting](docs/troubleshooting.md) | Common errors and fixes |
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Cloud Agent transcripts] --> B[Converter]
+    B --> C[Staging JSONL]
+    D[Paxel upload.sh] --> E[Patcher]
+    E --> F[Patched upload]
+    C --> F
+    F --> G[Paxel by YC]
+```
 
 ## Quick start
 
-### 1. Export Cloud Agent transcripts
+### Prerequisites
 
-Use the Cursor Cloud MCP `batch-fetch-details` tool (or any export that produces this layout):
+- Python 3.8+, `curl`, `bash`
+- Docker (required by Paxel)
+- Exported Cloud Agent transcripts — see [Exporting transcripts](docs/exporting-transcripts.md)
+
+### 1. Install
+
+```bash
+git clone https://github.com/Salestrics/Cursor-Cloud-to-Paxel-Converter.git
+cd Cursor-Cloud-to-Paxel-Converter
+chmod +x paxel-upload-with-cloud-agents.sh
+```
+
+### 2. Export transcripts
+
+Place an export with this layout at `<project>/cloud-agent-transcripts-export`:
 
 ```text
 cloud-agent-transcripts-export/
@@ -22,26 +60,23 @@ cloud-agent-transcripts-export/
     transcript.json
 ```
 
-Place the export at one of:
+The fastest path is the Cursor Cloud MCP `batch-fetch-details` tool with `include_transcripts: true`. Full instructions: [Exporting transcripts](docs/exporting-transcripts.md).
 
-- `$EXPORT_DIR` (env var)
-- `<project>/cloud-agent-transcripts-export`
-- `<converter>/cloud-agent-transcripts-export`
-
-### 2. Upload to Paxel
+### 3. Upload
 
 ```bash
-git clone https://github.com/Salestrics/Cursor-Cloud-to-Paxel-Converter.git
-cd Cursor-Cloud-to-Paxel-Converter
-chmod +x paxel-upload-with-cloud-agents.sh
+# Optional: skip browser sign-in
+export YC_TOKEN="your-paxel-token"
 
 # From anywhere, pointing at your project:
 ./paxel-upload-with-cloud-agents.sh /path/to/your/project --since 2m
 ```
 
-Set `YC_TOKEN` if you already have a Paxel API token. Docker must be installed and running.
+The wrapper converts transcripts, downloads and patches Paxel's `upload.sh`, and runs the upload from your project.
 
 ## Manual conversion
+
+Convert without uploading:
 
 ```bash
 python3 convert-cloud-agent-transcripts-to-paxel.py \
@@ -50,38 +85,15 @@ python3 convert-cloud-agent-transcripts-to-paxel.py \
   --output-dir ~/.paxel/cloud-agent-cursor-staging
 ```
 
-### CLI options
+See [Reference](docs/reference.md) for all CLI options and environment variables.
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--export-dir` | `cloud-agent-transcripts-export` | Directory with `index.json` and `bc-*/transcript.json` |
-| `--output-dir` | `~/.paxel/cloud-agent-cursor-staging` | Paxel staging directory |
-| `--workspace` | *(required)* | Project workspace path |
-| `--git-remote` | origin URL | Optional git remote override |
+## Environment variables
 
-### Output layout
-
-```text
-~/.paxel/cloud-agent-cursor-staging/
-  _metadata.json
-  manifest.json
-  _cursor_<projectName>_<hash6>/
-    bc-<agent-id>.jsonl
-```
-
-Each JSONL file uses Paxel's Cursor format. The first line includes `_cursor_meta` with `composerId`, `workspace`, `git_remote`, `agent_type="cursor"`, and `cloud_agent_name`.
-
-## What gets patched in Paxel upload.sh
-
-`patch-paxel-for-cloud-agents.py` applies seven in-place edits to the downloaded Paxel script:
-
-1. **`collect_cursor_sessions()`** — copies staging JSONL when `PAXEL_CLOUD_AGENT_CURSOR_DIR` is set
-2. **`session_count`** — includes cloud import count from staging
-3. **Auto-detect** — skips the "none match" prompt when cloud staging has sessions
-4. **`maybe_prescan_cursor_remotes`** — works without a local Cursor SQLite DB
-5. **`_paxel_should_run_cursor_extraction()`** — helper injected before `run_docker_analysis()`
-6. **Docker cursor mount gate** — uses the helper (cloud imports do not require `jq`/`sqlite3`)
-7. **Missing-tools hint** — suppressed when cloud staging is in use
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EXPORT_DIR` | `<project>/cloud-agent-transcripts-export` | Transcript export directory |
+| `PAXEL_CLOUD_AGENT_CURSOR_DIR` | `~/.paxel/cloud-agent-cursor-staging` | Staging output directory |
+| `YC_TOKEN` | *(unset)* | Paxel API token (optional) |
 
 ## Tool name mapping
 
@@ -96,6 +108,8 @@ Cloud Agent tool names are normalized to Paxel's Cursor names:
 | `glob_file_search`, `Glob` | `Glob` |
 | `Task` | `Task` |
 
+Full mapping table: [Reference](docs/reference.md#tool-name-mapping).
+
 ## Files
 
 | File | Purpose |
@@ -103,13 +117,13 @@ Cloud Agent tool names are normalized to Paxel's Cursor names:
 | `convert-cloud-agent-transcripts-to-paxel.py` | Cloud transcript → Paxel JSONL converter |
 | `patch-paxel-for-cloud-agents.py` | Patches downloaded Paxel `upload.sh` |
 | `paxel-upload-with-cloud-agents.sh` | End-to-end wrapper script |
+| `docs/` | Detailed guides |
 
-## Requirements
+## Limitations
 
-- Python 3.8+
-- `curl`, `bash`
-- Docker (for Paxel analysis)
-- Exported Cloud Agent transcripts (`index.json` + per-agent `transcript.json`)
+- **Unofficial** — not endorsed by Cursor or YC; Paxel's `upload.sh` may change
+- **No incremental sync** — each run re-converts all agents in the export
+- **Patch fragility** — eight in-place edits to Paxel's script; see [Architecture](docs/architecture.md)
 
 ## License
 

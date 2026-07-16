@@ -74,6 +74,55 @@ export YC_TOKEN="your-paxel-token"
 
 The wrapper converts transcripts, downloads and patches Paxel's `upload.sh`, and runs the upload from your project.
 
+## Suggested Cursor prompts
+
+Copy these into a **Cursor Agent** (desktop or cloud) when you want the agent to handle export and upload for you. Replace placeholders like `<your-project>` and `<repo-url>` with your paths.
+
+### First-time conversion
+
+Use this when you are converting Cloud Agent sessions to Paxel for the first time:
+
+```text
+I want to upload my Cursor Cloud Agent sessions to Paxel using the Cursor Cloud to Paxel Converter.
+
+Repo: https://github.com/Salestrics/Cursor-Cloud-to-Paxel-Converter
+Project to upload: <your-project>   (absolute path, must be a git repo)
+
+Please:
+1. Clone the converter repo if needed and make paxel-upload-with-cloud-agents.sh executable.
+2. Use the Cursor Cloud MCP tools to export transcripts for this repository:
+   - Call list-cloud-agents with filters for agents that made code changes (paginate if needed).
+   - Call batch-fetch-details with include_transcripts: true for all relevant bc_ids (max 50 per call).
+3. Copy the export to <your-project>/cloud-agent-transcripts-export with index.json and bc-<id>/transcript.json per agent.
+4. Zip the export as <your-project>/cloud-agent-transcripts-export.zip for easy reuse.
+5. Run ./paxel-upload-with-cloud-agents.sh <your-project> --since 2m from the converter repo.
+6. Tell me how many agents were exported and whether the Paxel upload succeeded.
+```
+
+### Updating with new cloud pulls
+
+Use this when you already have an export (and zip) and want to pull in new Cloud Agent sessions:
+
+```text
+Update my Paxel cloud-agent export with new Cursor Cloud Agent sessions.
+
+Project: <your-project>   (absolute path)
+Existing export: <your-project>/cloud-agent-transcripts-export
+Existing zip (if present): <your-project>/cloud-agent-transcripts-export.zip
+Converter repo: <path-to-Cursor-Cloud-to-Paxel-Converter>
+
+Please:
+1. Read the existing export's index.json and note which bc_ids are already included.
+2. Use list-cloud-agents for this repository and find agents not yet in the export (prefer did_make_code_changes: true; use created_after if you know the last export date).
+3. Call batch-fetch-details with include_transcripts: true for only the new bc_ids.
+4. Merge the new agents into cloud-agent-transcripts-export (append to index.json; add bc-<id>/transcript.json folders). Do not remove existing agents unless I ask.
+5. Refresh cloud-agent-transcripts-export.zip from the updated export directory.
+6. Re-run ./paxel-upload-with-cloud-agents.sh <your-project> --since 2m.
+7. Summarize which new agents were added and whether the upload succeeded.
+```
+
+> **Tip:** The converter re-processes every agent in the export on each run — merging new sessions into the existing export (and zip) is the simplest way to keep history while adding new cloud pulls.
+
 ## Manual conversion
 
 Convert without uploading:

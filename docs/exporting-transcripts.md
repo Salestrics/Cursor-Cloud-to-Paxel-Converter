@@ -117,28 +117,45 @@ The tool writes files under `/tmp/cursor/cloud-agent-transcripts/<datetime-id>/`
     transcript.json
 ```
 
-### 3. Copy to your project
+### 3. Sync to your project
 
-Copy the export directory to one of the locations the wrapper checks:
+**Automated (recommended):**
+
+```bash
+./automate-bridge.sh /path/to/your/project --since 2m
+```
+
+This auto-detects the latest `/tmp/cursor/cloud-agent-transcripts/<datetime-id>/` directory, merges it into `<project>/cloud-agent-transcripts-export`, converts, and uploads.
+
+**Manual merge only:**
+
+```bash
+python3 merge-cloud-agent-export.py \
+  --source /tmp/cursor/cloud-agent-transcripts/2026-07-14T01-00-00 \
+  --dest /path/to/your/project/cloud-agent-transcripts-export \
+  --zip
+```
+
+**Copy without merge:**
 
 ```bash
 cp -r /tmp/cursor/cloud-agent-transcripts/2026-07-14T01-00-00 \
   /path/to/your/project/cloud-agent-transcripts-export
 ```
 
-Or set `EXPORT_DIR` to point at the temp directory directly.
+Or set `EXPORT_DIR` to point at the temp directory directly when running `paxel-upload-with-cloud-agents.sh`.
 
-> **Note:** `batch-fetch-details` accepts up to 50 `bc_ids` per call. For larger batches, split into multiple calls and merge the `agents` arrays in `index.json`.
+> **Note:** `batch-fetch-details` accepts up to 50 `bc_ids` per call. For larger batches, split into multiple calls — `merge-cloud-agent-export.py` appends each batch incrementally.
 
-## Method 2: Ask a Cloud Agent to export
+## Method 2: One-command automation
 
-When running inside a Cursor Cloud Agent environment, you can ask the agent to:
+When running inside a Cursor Cloud Agent with MCP access:
 
 1. Call `list-cloud-agents` to find relevant sessions
 2. Call `batch-fetch-details` with `include_transcripts: true`
-3. Copy the output to `cloud-agent-transcripts-export/` in the project
+3. Run `./automate-bridge.sh <project> --since 2m`
 
-The wrapper script checks `<project>/cloud-agent-transcripts-export` automatically.
+The script handles merge, conversion, patching, and upload. For incremental updates, re-run steps 1–3 — existing agents in the export are skipped automatically.
 
 ## Method 3: Manual export
 

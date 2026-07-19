@@ -11,7 +11,8 @@ This guide walks you through exporting Cursor Cloud Agent transcripts and upload
 | **curl** | Downloads Paxel's `upload.sh` |
 | **Docker** | Required by Paxel for session analysis |
 | **Git repo** | Your project should be a git repository (for remote matching) |
-| **Exported transcripts** | See [Exporting transcripts](exporting-transcripts.md) |
+| **Cursor Cloud MCP** | For automated export via `automate-bridge.sh` |
+| **Exported transcripts** | Or prepare manually — see [Exporting transcripts](exporting-transcripts.md) |
 
 Optional:
 
@@ -23,14 +24,27 @@ Optional:
 ```bash
 git clone https://github.com/Salestrics/Cursor-Cloud-to-Paxel-Converter.git
 cd Cursor-Cloud-to-Paxel-Converter
-chmod +x paxel-upload-with-cloud-agents.sh
+chmod +x automate-bridge.sh paxel-upload-with-cloud-agents.sh
 ```
 
 No `pip install` step — the converter uses only the Python standard library.
 
-## Step 1: Export Cloud Agent transcripts
+## Step 1: Export and upload (automated)
 
-You need a directory with this layout:
+From a **Cursor Agent** with Cloud MCP access:
+
+```bash
+# 1. Agent calls list-cloud-agents + batch-fetch-details (include_transcripts: true)
+# 2. Run one command:
+export YC_TOKEN="your-token"   # optional
+./automate-bridge.sh /path/to/your/project --since 2m --zip
+```
+
+This merges the latest MCP export, converts to Paxel JSONL, patches `upload.sh`, and uploads.
+
+## Step 1 (manual): Export Cloud Agent transcripts
+
+If you are not using `automate-bridge.sh`, prepare a directory with this layout:
 
 ```text
 cloud-agent-transcripts-export/
@@ -47,9 +61,9 @@ Place the export at one of these locations (checked in order):
 2. `<your-project>/cloud-agent-transcripts-export`
 3. `<converter-repo>/cloud-agent-transcripts-export`
 
-## Step 2: Upload to Paxel
+## Step 2: Upload to Paxel (manual export)
 
-Run the wrapper from anywhere, pointing at your project:
+If you exported transcripts manually, run:
 
 ```bash
 ./paxel-upload-with-cloud-agents.sh /path/to/your/project --since 2m

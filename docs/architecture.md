@@ -19,14 +19,19 @@ Cursor **Cloud Agents** run in remote pods. Their transcripts live in Cursor's c
 
 ```mermaid
 flowchart LR
-    A[Cloud Agent transcripts] --> B[convert-cloud-agent-transcripts-to-paxel.py]
-    B --> C[Staging JSONL<br/>~/.paxel/cloud-agent-cursor-staging]
-    D[Paxel upload.sh] --> E[patch-paxel-for-cloud-agents.py]
-    E --> F[Patched upload.sh]
-    C --> F
-    F --> G[Paxel Docker analysis]
-    G --> H[Paxel by YC]
+    A[Cloud Agent transcripts] --> B[MCP batch-fetch]
+    B --> C[merge-cloud-agent-export.py]
+    C --> D[Project export]
+    D --> E[convert-cloud-agent-transcripts-to-paxel.py]
+    E --> F[Staging JSONL]
+    G[Paxel upload.sh] --> H[patch-paxel-for-cloud-agents.py]
+    H --> I[Patched upload.sh]
+    F --> I
+    I --> J[Paxel Docker analysis]
+    J --> K[Paxel by YC]
 ```
+
+Or use `automate-bridge.sh` to run the merge → convert → patch → upload flow in one command.
 
 ## Components
 
@@ -61,9 +66,24 @@ Downloads Paxel's `upload.sh` is fetched fresh on each run. The patcher applies 
 
 Patches are idempotent: re-running skips already-applied edits.
 
-### 3. Wrapper (`paxel-upload-with-cloud-agents.sh`)
+### 3. Merger (`merge-cloud-agent-export.py`)
 
-Orchestrates the full flow:
+Merges MCP `batch-fetch-details` output into a persistent project export:
+
+- Auto-detects the latest `/tmp/cursor/cloud-agent-transcripts/<datetime-id>/` directory
+- Skips agents already in `index.json` (use `--force` to overwrite)
+- Optionally refreshes `cloud-agent-transcripts-export.zip`
+
+### 4. Automation (`automate-bridge.sh`)
+
+One-command orchestration:
+
+1. Merge latest MCP export → `<project>/cloud-agent-transcripts-export`
+2. Delegate to `paxel-upload-with-cloud-agents.sh` for convert + patch + upload
+
+### 5. Wrapper (`paxel-upload-with-cloud-agents.sh`)
+
+Orchestrates convert + upload (no MCP sync):
 
 1. Resolve export directory
 2. Run converter → staging
@@ -126,6 +146,6 @@ When you upload from the same repo, Paxel auto-detects the project even without 
 ## Limitations
 
 - **Unofficial** — not endorsed by Cursor or YC; Paxel's `upload.sh` format may change and break patches
-- **No incremental sync** — each run re-converts all agents in the export
+- **No incremental conversion** — each upload re-converts all agents in the export (merge is incremental)
 - **Tool name coverage** — unknown tool names pass through unchanged; see [Reference](reference.md) for the mapping table
 - **Transcript fidelity** — thinking blocks and tool results are preserved, but Paxel's analysis may weight them differently than native Cursor sessions

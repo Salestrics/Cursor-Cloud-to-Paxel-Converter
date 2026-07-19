@@ -6,9 +6,47 @@ CLI options, environment variables, output formats, and tool name mapping.
 
 | File | Purpose |
 |------|---------|
+| `automate-bridge.sh` | One-command MCP sync + convert + Paxel upload |
+| `merge-cloud-agent-export.py` | Incremental merge of MCP batch-fetch into project export |
 | `convert-cloud-agent-transcripts-to-paxel.py` | Cloud transcript → Paxel JSONL converter |
 | `patch-paxel-for-cloud-agents.py` | Patches downloaded Paxel `upload.sh` |
-| `paxel-upload-with-cloud-agents.sh` | End-to-end wrapper |
+| `paxel-upload-with-cloud-agents.sh` | Convert + patch + upload (no MCP sync) |
+
+## `automate-bridge.sh`
+
+```bash
+./automate-bridge.sh /path/to/project [options] [-- upload-args...]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--sync-from DIR` | MCP export directory (default: latest `/tmp/cursor/cloud-agent-transcripts/*` or `$MCP_EXPORT_DIR`) |
+| `--no-sync` | Skip MCP merge; use existing project export |
+| `--sync-only` | Merge MCP export and exit |
+| `--force-sync` | Overwrite agents already in the export |
+| `--zip` | Refresh `cloud-agent-transcripts-export.zip` after merge |
+| `--since DURATION` | Paxel upload window (default: `2m`) |
+
+## `merge-cloud-agent-export.py`
+
+```bash
+python3 merge-cloud-agent-export.py \
+  [--source <mcp-export-dir>] \
+  --dest <project-export-dir> \
+  [--force] \
+  [--zip] \
+  [--list-missing BC_ID ...]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source` | Latest `/tmp/cursor/cloud-agent-transcripts/*` | MCP `batch-fetch-details` output directory |
+| `--dest` | `cloud-agent-transcripts-export` | Persistent project export directory |
+| `--force` | off | Overwrite agents already present in `--dest` |
+| `--zip` | off | Write `<dest>.zip` after merge |
+| `--list-missing` | — | Print bc_ids not yet in `--dest`, then exit |
+
+**Exit codes:** `0` success, `1` error (missing source, bad JSON).
 
 ## `convert-cloud-agent-transcripts-to-paxel.py`
 
@@ -54,6 +92,7 @@ Applies eight in-place patches (seven functional areas; `session_count` is patch
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `MCP_EXPORT_DIR` | *(unset)* | Default MCP export directory for `automate-bridge.sh --sync-from` |
 | `EXPORT_DIR` | *(see resolution order)* | Override transcript export directory |
 | `PAXEL_CLOUD_AGENT_CURSOR_DIR` | `~/.paxel/cloud-agent-cursor-staging` | Staging output; read by patched Paxel upload |
 | `YC_TOKEN` | *(unset)* | Paxel API token (optional; browser auth works) |

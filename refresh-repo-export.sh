@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Refresh cloud-agent-transcripts-export.zip in a project repo and commit it.
 #
-# Shell workflow for repos that keep the export zip in git (e.g. SalestricsOS):
-#   ./refresh-repo-export.sh /path/to/SalestricsOS
-#   ./refresh-repo-export.sh /path/to/SalestricsOS --push
+# Shell workflow for repos that keep the export zip in git:
+#   ./refresh-repo-export.sh /path/to/your/project
+#   ./refresh-repo-export.sh /path/to/your/project --push
 #
 # If the export directory is missing but the zip exists, the zip is extracted first.
 set -Eeuo pipefail

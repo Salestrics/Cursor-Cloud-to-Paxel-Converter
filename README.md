@@ -92,12 +92,11 @@ Full MCP export instructions: [Exporting transcripts](docs/exporting-transcripts
 
 ### 4. Keep the export zip updated in your repo (shell)
 
-For repos that track `cloud-agent-transcripts-export.zip` in git (e.g. SalestricsOS):
+For repos that track `cloud-agent-transcripts-export.zip` in git:
 
 ```bash
-# One-time setup in SalestricsOS
-git clone https://github.com/Salestrics/SalestricsOS.git
-cd SalestricsOS
+# One-time setup in your project repo
+cd /path/to/your/project
 # place or unzip your export, then:
 
 # Refresh zip + commit (and optionally push)
@@ -111,7 +110,7 @@ cd SalestricsOS
 After a Cursor Agent pulls new MCP transcripts, re-run with sync enabled to merge new agents, refresh the zip, and commit:
 
 ```bash
-./automate-bridge.sh /path/to/SalestricsOS --zip --commit-export --push-export
+./automate-bridge.sh /path/to/your/project --zip --commit-export --push-export
 ```
 
 ## Suggested Cursor prompts

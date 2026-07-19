@@ -24,7 +24,9 @@ Options:
   --no-sync         Skip MCP export merge; use the existing project export only
   --sync-only       Merge MCP export and exit (no Paxel upload)
   --force-sync      Overwrite agents that already exist in the project export
-  --zip             Refresh cloud-agent-transcripts-export.zip after merge
+  --zip             Refresh cloud-agent-transcripts-export.zip after merge or before upload
+  --commit-export   Git commit the refreshed zip in the project repo
+  --push-export     Push after --commit-export
   --since DURATION  Paxel upload window (default: 2m)
   -h, --help        Show this help
 
@@ -55,6 +57,8 @@ DO_SYNC=1
 SYNC_ONLY=0
 FORCE_SYNC=0
 MAKE_ZIP=0
+COMMIT_EXPORT=0
+PUSH_EXPORT=0
 SINCE="2m"
 UPLOAD_ARGS=()
 
@@ -77,6 +81,17 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     --zip)
+      MAKE_ZIP=1
+      shift
+      ;;
+    --commit-export)
+      COMMIT_EXPORT=1
+      MAKE_ZIP=1
+      shift
+      ;;
+    --push-export)
+      PUSH_EXPORT=1
+      COMMIT_EXPORT=1
       MAKE_ZIP=1
       shift
       ;;
@@ -136,6 +151,16 @@ if [ "$DO_SYNC" -eq 1 ]; then
 fi
 
 if [ "$SYNC_ONLY" -eq 1 ]; then
+  if [ "$MAKE_ZIP" -eq 1 ] && [ "$DO_SYNC" -eq 0 ]; then
+    "$PYTHON" "$CONVERTER_DIR/merge-cloud-agent-export.py" \
+      --dest "$EXPORT_DIR" \
+      --zip-only
+  fi
+  if [ "$COMMIT_EXPORT" -eq 1 ]; then
+    COMMIT_ARGS=("$PROJECT_DIR")
+    [ "$PUSH_EXPORT" -eq 1 ] && COMMIT_ARGS+=(--push)
+    "$CONVERTER_DIR/refresh-repo-export.sh" "${COMMIT_ARGS[@]}"
+  fi
   exit 0
 fi
 
@@ -149,6 +174,18 @@ Run this from a Cursor Agent with Cloud MCP access:
   3. ./automate-bridge.sh "$PROJECT_DIR"
 EOF
   exit 1
+fi
+
+if [ "$MAKE_ZIP" -eq 1 ] && [ "$DO_SYNC" -eq 0 ]; then
+  "$PYTHON" "$CONVERTER_DIR/merge-cloud-agent-export.py" \
+    --dest "$EXPORT_DIR" \
+    --zip-only
+fi
+
+if [ "$COMMIT_EXPORT" -eq 1 ]; then
+  COMMIT_ARGS=("$PROJECT_DIR")
+  [ "$PUSH_EXPORT" -eq 1 ] && COMMIT_ARGS+=(--push)
+  "$CONVERTER_DIR/refresh-repo-export.sh" "${COMMIT_ARGS[@]}"
 fi
 
 export EXPORT_DIR

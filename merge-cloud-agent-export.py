@@ -187,6 +187,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Refresh <dest>.zip after merging",
     )
     parser.add_argument(
+        "--zip-only",
+        action="store_true",
+        help="Only refresh <dest>.zip from the existing export directory",
+    )
+    parser.add_argument(
         "--list-missing",
         metavar="BC_ID",
         nargs="+",
@@ -205,7 +210,19 @@ def main(argv: list[str] | None = None) -> int:
             print(bc_id)
         return 0
 
-    source_dir = Path(args.source).expanduser().resolve() if args.source else find_latest_mcp_export()
+    if args.zip_only:
+        if not (dest_dir / "index.json").is_file():
+            print(f"Export directory not found or missing index.json: {dest_dir}", file=sys.stderr)
+            return 1
+        zip_path = zip_export(dest_dir)
+        agents = load_agents(dest_dir / "index.json")
+        print(f"Refreshed {zip_path} ({len(agents)} agent(s))")
+        return 0
+
+    if args.source:
+        source_dir = Path(args.source).expanduser().resolve()
+    else:
+        source_dir = find_latest_mcp_export()
     if source_dir is None:
         print(
             "No MCP export directory found. Run batch-fetch-details first or pass --source.",

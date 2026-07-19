@@ -90,6 +90,30 @@ cloud-agent-transcripts-export/
 
 Full MCP export instructions: [Exporting transcripts](docs/exporting-transcripts.md).
 
+### 4. Keep the export zip updated in your repo (shell)
+
+For repos that track `cloud-agent-transcripts-export.zip` in git (e.g. SalestricsOS):
+
+```bash
+# One-time setup in SalestricsOS
+git clone https://github.com/Salestrics/SalestricsOS.git
+cd SalestricsOS
+# place or unzip your export, then:
+
+# Refresh zip + commit (and optionally push)
+/path/to/Cursor-Cloud-to-Paxel-Converter/refresh-repo-export.sh "$PWD" --push
+
+# Upload to Paxel from the existing export (refreshes + commits zip automatically)
+/path/to/Cursor-Cloud-to-Paxel-Converter/automate-bridge.sh "$PWD" \
+  --no-sync --since 2m --commit-export --push-export
+```
+
+After a Cursor Agent pulls new MCP transcripts, re-run with sync enabled to merge new agents, refresh the zip, and commit:
+
+```bash
+./automate-bridge.sh /path/to/SalestricsOS --zip --commit-export --push-export
+```
+
 ## Suggested Cursor prompts
 
 Copy these into a **Cursor Agent** (desktop or cloud) when you want the agent to handle export and upload for you. Replace placeholders like `<your-project>` with your paths.
@@ -169,6 +193,7 @@ Full mapping table: [Reference](docs/reference.md#tool-name-mapping).
 | File | Purpose |
 |------|---------|
 | `automate-bridge.sh` | **One-command** MCP sync + convert + Paxel upload |
+| `refresh-repo-export.sh` | Refresh export zip in a project repo and git commit it |
 | `merge-cloud-agent-export.py` | Incremental merge of MCP batch-fetch into project export |
 | `convert-cloud-agent-transcripts-to-paxel.py` | Cloud transcript → Paxel JSONL converter |
 | `patch-paxel-for-cloud-agents.py` | Patches downloaded Paxel `upload.sh` |

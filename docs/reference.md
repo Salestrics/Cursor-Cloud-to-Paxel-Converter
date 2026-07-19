@@ -7,6 +7,7 @@ CLI options, environment variables, output formats, and tool name mapping.
 | File | Purpose |
 |------|---------|
 | `automate-bridge.sh` | One-command MCP sync + convert + Paxel upload |
+| `refresh-repo-export.sh` | Refresh export zip in a project repo and git commit it |
 | `merge-cloud-agent-export.py` | Incremental merge of MCP batch-fetch into project export |
 | `convert-cloud-agent-transcripts-to-paxel.py` | Cloud transcript → Paxel JSONL converter |
 | `patch-paxel-for-cloud-agents.py` | Patches downloaded Paxel `upload.sh` |
@@ -24,7 +25,9 @@ CLI options, environment variables, output formats, and tool name mapping.
 | `--no-sync` | Skip MCP merge; use existing project export |
 | `--sync-only` | Merge MCP export and exit |
 | `--force-sync` | Overwrite agents already in the export |
-| `--zip` | Refresh `cloud-agent-transcripts-export.zip` after merge |
+| `--zip` | Refresh `cloud-agent-transcripts-export.zip` after merge or before upload |
+| `--commit-export` | Git commit the refreshed zip in the project repo |
+| `--push-export` | Push after `--commit-export` |
 | `--since DURATION` | Paxel upload window (default: `2m`) |
 
 ## `merge-cloud-agent-export.py`
@@ -44,9 +47,24 @@ python3 merge-cloud-agent-export.py \
 | `--dest` | `cloud-agent-transcripts-export` | Persistent project export directory |
 | `--force` | off | Overwrite agents already present in `--dest` |
 | `--zip` | off | Write `<dest>.zip` after merge |
+| `--zip-only` | — | Only refresh `<dest>.zip` from existing export |
 | `--list-missing` | — | Print bc_ids not yet in `--dest`, then exit |
 
 **Exit codes:** `0` success, `1` error (missing source, bad JSON).
+
+## `refresh-repo-export.sh`
+
+```bash
+./refresh-repo-export.sh /path/to/project [options]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--from-zip PATH` | Unzip into the project export directory first |
+| `--unzip` | Unzip `<project>/cloud-agent-transcripts-export.zip` if export dir is missing |
+| `--commit-msg MSG` | Git commit message |
+| `--push` | Push after commit |
+| `--no-commit` | Refresh zip only |
 
 ## `convert-cloud-agent-transcripts-to-paxel.py`
 
